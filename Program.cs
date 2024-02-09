@@ -12,7 +12,21 @@ builder.Services.AddRateLimiter(ratelimter =>
 {
     ratelimter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Fixed Window
+    // applied globally
+    ratelimter.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        return RateLimitPartition.GetFixedWindowLimiter(
+            context.Request.Headers.Host.ToString(),
+            options => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromSeconds(5),
+                PermitLimit = 2,
+                QueueLimit = 0
+            });
+    });
+
+    // Another way of defining Fixed Window Ratelimiter
+    // To apply this specify policy name on resource using EnableRateLimiter attribute
     ratelimter.AddFixedWindowLimiter("fixed", options =>
     {
         options.Window = TimeSpan.FromSeconds(5);
@@ -27,7 +41,7 @@ builder.Services.AddRateLimiter(ratelimter =>
         options.PermitLimit = 2;
         options.QueueLimit = 2;
         options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        options.SegmentsPerWindow = 2;        
+        options.SegmentsPerWindow = 2;
     });
 
     // Token Bucket
@@ -46,7 +60,7 @@ builder.Services.AddRateLimiter(ratelimter =>
     {
         options.PermitLimit = 2;
         options.QueueLimit = 2;
-        options.QueueProcessingOrder= QueueProcessingOrder.OldestFirst;
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
 });
 
